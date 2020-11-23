@@ -1,0 +1,357 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+```{r}
+install.packages("sjmisc")
+install.packages("sqldf")
+```
+```{r}
+install.packages('frequency')
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+library(sqldf)
+library(sjmisc)
+library(ggplot2)
+library(tidyverse)
+library(frequency)
+library(ggpubr)
+```
+
+```{r}
+player_list <- read.csv("General_NBA/basketball_master.csv")
+all_stars <- read.csv("General_NBA/basketball_player_allstar.csv")
+player_stats <- read.csv("Playerstats_since1950/Seasons_Stats.csv")
+salaries <- read.csv("NBA_salaries/salaries_1985to2018.csv")
+awards <- read.csv("General_NBA/basketball_awards_players.csv")
+
+```
+
+
+```{r}
+#combine name in player_list
+player_list <- transform(player_list, Name=paste(useFirst, lastName, sep=" "))
+#prepare allstars and player_stats to merge into the master
+keep_cols <- names(all_stars) %in% c("last_name", "first_name", "season_id")
+all_stars <- all_stars[keep_cols]
+all_stars <- transform(all_stars, Name=paste(first_name, last_name, sep=" "))
+all_stars$all_star <- 1
+
+# Season Game Score to player_stats and combine with all_stars
+player_stats$GmSc <- player_stats$PTS + 0.4*player_stats$FG - 0.7*player_stats$FGA - 0.4*(player_stats$FTA - player_stats$FT) + 0.7*player_stats$ORB +0.3*player_stats$DRB + player_stats$STL + 0.7*player_stats$AST + 0.7*player_stats$BLK -0.4*player_stats$PF - player_stats$TOV
+
+#remove stars from player names
+for(i in 1:length(player_stats$Player)){
+  name <- player_stats$Player[i]
+  if(str_contains(name,'*')){
+    player_stats$Player[i] <- substr(name,1,nchar(name)-1)
+  }
+}
+player_stats
+
+#merge all_stars into the main data set
+player_stats <- sqldf("
+                      SELECT * 
+                      FROM player_stats
+                      LEFT JOIN all_stars
+                      ON player_stats.Player = all_stars.Name
+                      AND player_stats.Year = all_stars.season_id")
+player_stats$all_star[is.na(player_stats$all_star)] <- 0 
+#prepare player_stats to includ years from 1985 - 2018 to merge to master
+keep_cols <- names(player_stats) %in% c("last_name", "first_name", "Name","season_id")
+player_stats <- player_stats[!keep_cols]
+player_stats <- subset(player_stats, Year >= 1985 & Year <= 2017)
+player_stats
+```
+```{r}
+master
+```
+
+
+```{r}
+#prepare salaries
+salaries
+player_list
+salaries <- sqldf("
+                  SELECT player_list.Name as Name,
+                    salary, 
+                    season_start,
+                    player_list.height as height,
+                    player_list.weight as weight,
+                    player_list.college as college,
+                    player_list.birthDate as birthDate,
+                    player_list.birthCity as birthCity,
+                    player_list.birthState as birthState
+                  FROM salaries
+                  LEFT JOIN player_list ON salaries.player_id = player_list.bioID")
+
+#salaries <- transform(salaries, Name=paste(useFirst, lastName,nameSuffix, sep=" "))
+#salaries <- transform(salaries, Name=paste(useFirst, lastName, sep=" "))
+
+keep_cols <- names(salaries) %in% c("Name", "salary","season_start", "height","weight","college","birthCity","birthState")
+salaries <- salaries[keep_cols]
+salaries
+```
+
+```{r}
+awards$awarded <- 1
+awards <- sqldf("
+                  SELECT player_list.Name as player_name,
+                    year as awardYear,
+                    awarded
+                  FROM awards
+                  INNER JOIN player_list ON awards.playerID = player_list.bioID")
+awards
+```
+
+```{r}
+master <- sqldf("
+      SELECT *
+      FROM player_stats
+      LEFT JOIN salaries
+      ON player_stats.Player = salaries.Name AND
+      player_stats.Year = salaries.season_start
+      LEFT JOIN awards ON awards.player_name = salaries.Name AND
+      awards.awardYear = salaries.season_start
+      ")
+master
+
+```
+
+
+```{r}
+#Add a column called 'awarded' that indicates if a player was selected for the all-star team, awarded, or is a hall of fame player
+master$awarded[is.na(master$awarded)] <- 0
+for(i in 1:length(master$awarded)){
+  if(master$all_star[i] == 1){
+    master$awarded[i] = 1
+  }
+}
+master$player_name<- NULL
+master$season_start<- NULL
+master
+```
+```{r}
+#location EDA by
+playerColleges <- sqldf("SELECT college, COUNT(college) as cnt
+                  FROM master
+                  GROUP BY college
+                  ORDER BY cnt DESC
+                  ")
+playerCities <- sqldf("SELECT birthCity, COUNT(birthCity) as cnt
+                  FROM master 
+                  GROUP BY birthCity
+                  ORDER BY cnt DESC
+                  ")
+playerStates <- sqldf("SELECT birthState, COUNT(birthState) as cnt
+                  FROM master
+                  GROUP BY birthState
+                  ORDER BY cnt DESC
+                  ")
+topAwardedColleges <- sqldf("SELECT college as College, COUNT(college) as Num_Awarded_Players
+                  FROM master
+                  WHERE awarded = 1 AND College != 'none'
+                  GROUP BY college
+                  HAVING college != 'none'
+                  ORDER BY Num_Awarded_Players DESC
+                  ")
+topAwardedCities <- sqldf("SELECT birthCity as BirthCity, COUNT(birthCity) as Num_Awarded_Players
+                  FROM master
+                  WHERE awarded = 1
+                  GROUP BY birthCity
+                  ORDER BY Num_Awarded_Players DESC
+                  ")
+topAwardedStates <- sqldf("SELECT birthState, COUNT(birthState) as Num_Awarded_Players
+                  FROM master
+                  WHERE awarded = 1 
+                  GROUP BY birthState
+                  ORDER BY Num_Awarded_Players DESC
+                  ")
+ 
+barplot(table(master$birthState))
+summary(master$birthState)
+freq(master$birthState)
+playerColleges
+topAwardedColleges
+topAwardedCities
+topAwardedStates
+#would be interesting to see and income levels, and racial levels, of each city/state, and population.
+```
+```{r}
+#EDA for height and weight
+ggplot(master, aes(x=as.factor(height), y=salary)) +
+  geom_boxplot()
+
+p1<- ggplot(master, aes(x=height, y=salary)) +
+  geom_smooth()
+
+
+p2<-ggplot(master, aes(x=weight, y=salary)) +
+  geom_smooth()
+ggarrange(p1,p2, ncol=2, nrow=1)
+```
+
+```{r}
+#eda for awarded and nonAwarded
+p1<- ggplot(master, aes(x=as.factor(awarded), y=height)) +
+  geom_boxplot()+
+  xlab("Awarded")+
+  ylab("Height")
+
+p2<-ggplot(master, aes(x=as.factor(awarded), y=weight)) +
+  geom_boxplot()+
+  xlab("Awarded")+
+  ylab("Weight")
+
+ggarrange(p1,p2, ncol=2, nrow=1)
+
+
+awarded <- subset(master, awarded == 1)
+nonAwarded <- subset(master, awarded == 0)
+
+print("Average Heights")
+median(awarded$height,na.rm=TRUE)
+median(nonAwarded$height,na.rm=TRUE)
+print("Average Weights")
+median(awarded$weight,na.rm=TRUE)
+median(nonAwarded$weight,na.rm=TRUE)
+print("Average Game Score")
+mean(awarded$GmSc,na.rm=TRUE)
+mean(nonAwarded$GmSc,na.rm=TRUE)
+print("Average BPM")
+mean(awarded$BPM,na.rm=TRUE)
+mean(nonAwarded$BPM,na.rm=TRUE)
+print("2 point attempts")
+mean(awarded$X2PA,na.rm=TRUE)
+mean(nonAwarded$X2PA,na.rm=TRUE)
+print("3 point attempts")
+mean(awarded$X3PA,na.rm=TRUE)
+mean(nonAwarded$X3PA,na.rm=TRUE)
+```
+
+
+```{r}
+#3point percentage vs 2point percentage and salary
+df <- subset(master, X3P. != 0 & X3P. != 1)
+df # we use this subset of master to avoid outliers who have unrealistic percentages of 0 or 1
+ggplot(df, aes(x=X3P., y=salary)) +
+  geom_smooth(aes(x=X3P., y=salary, color='3-pointer Percentage')) +
+  geom_smooth(aes(x=X2P., y=salary, color = '2-pointer Percentage')) +
+  xlab("Percentage")
+
+```
+```{r}
+#rebounds, steals, assists, blocks EDA
+p1<-ggplot(df, aes(x= TRB., y=salary))+
+  geom_point()+
+  geom_smooth() +
+  xlab("Total Rebounds")
+
+p2<-ggplot(df, aes(x= STL., y=salary))+
+  geom_point()+
+  geom_smooth()+
+    xlab("Steals")
+
+p3<-ggplot(df, aes(x= AST., y=salary))+
+  geom_point()+
+  geom_smooth()+
+    xlab("Assists")
+
+p4<-ggplot(df, aes(x= BLK., y=salary))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Blocks")
+
+p5<-ggplot(df, aes(x= PTS, y=salary))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Points")
+ggarrange(p1,p2,p3,p4,p5, ncol=2,nrow=3)
+```
+
+```{r}
+#position EDA
+positions <- sqldf("SELECT Pos, COUNT(Pos) as cnt
+                  FROM master
+                  GROUP BY Pos
+                  ORDER BY cnt DESC
+                  ")
+ggplot(master, aes(x=as.factor(Pos), y=salary)) +
+  geom_boxplot(col=c("red","blue","red","blue","blue","red","blue","blue","red","blue","blue","red","blue","blue","blue"))+
+  scale_colour_manual(values= c("C"="red", "PF"="red", "PG"="red", "SF"="red", "SG"="red")) +
+  xlab("Position")
+#the more versatile players will have higher salaries
+```
+
+```{r}
+#more EDA for positions, teams, colleges
+awardedPositions <- sqldf("SELECT  Pos, COUNT(Pos) as cnt
+                  FROM master
+                  WHERE awarded = 1 OR all_star = 1
+                  GROUP BY Pos
+                  ORDER BY cnt DESC
+                  ")
+
+awardedPositions
+teams <- sqldf("SELECT  Tm, COUNT(Tm) as cnt
+                  FROM master
+                  WHERE awarded = 1
+                  GROUP BY Tm
+                  ORDER BY cnt DESC
+                  ")
+
+teams
+colleges <- sqldf("SELECT  college, COUNT(college) as cnt
+                  FROM master
+                  WHERE awarded = 1
+                  GROUP BY college
+                  ORDER BY cnt DESC
+                  ")
+
+colleges
+```
+
+```{r}
+#current trend analysis
+ggplot(master, aes(x = as.factor(Year), y = X3PA)) +
+  geom_boxplot()+
+  geom_smooth(method="lm", se=TRUE, aes(group=1))+
+  theme(axis.text.x = element_text(angle=45))
+master
+```
+```{r}
+ggplot(master, aes(x = FG., y= salary))+
+  geom_point()+
+  geom_smooth()
+```
+
+```{r}
+#logit model to see if a player will be an all-star or awarded NBA player
+options(max.print=1000000)
+model <- glm(awarded~as.factor(Tm) + GmSc + as.factor(college) + as.factor(birthCity), data= master) 
+summary(model)
+```
+```{r}
+model <- lm(salary~as.factor(Tm) + GmSc + as.factor(college) + height + weight + as.factor(Pos), data= master) 
+summary(model)
+```
+```{r}
+
+model <- glm(awarded~GmSc + as.factor(Pos) + salary + height + weight, data= master) 
+summary(model)
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
