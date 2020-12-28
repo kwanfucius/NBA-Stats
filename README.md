@@ -13,7 +13,9 @@ Hall of fame players and all-star players dramatically escalate the publicity, t
 * [Basketball Statistics Glossary](https://www.basketball-reference.com/about/glossary.html) – A dictionary of all statistics acronyms
 
 # Interesting Finds
-![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Awarded%20Players.png)
-![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Individual%20Stats.png)
-![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Player%20Position.png)
 ![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Shot%20Type%20Percentage.png)
+The above graph shows us an interesting feature of the NBA. The higher 3-pointer percentage eventually has a lower expected salary. This is due to the fact that when players have a very high 3-point percentage they are isolated to doing that skill that they do best, thus becoming a role player. Whereas those of all-star tendencies have a variety of skill. Those with a This brings us to another feature found in the NBA. The players that are more awarded or have a higher salary tend to have a large number of diverse skills. This is shown by the graph below. Those in red have only one specific role whereas those in blue can fill two roles on a single team. The median salary tends to be advantageous to those who can play two roles. 
+![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Player%20Position.png)
+The NBA due to the nature of revenue streams has put a large emphasis on offensive play specifically points. One may expect that there would be an overemphasis on points. However, this data set shows that there a large desire for diversification of skill. Each of these statistics show that there is a median where the salaries are expected to be the highest. This again supports our claim of a “role player” versus an all-star. Whereas a role player specializes in a certain statistic, all-stars tend to be had a variety of impacts on all sides of the game. 
+![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Individual%20Stats.png)
+![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Awarded%20Players.png)
