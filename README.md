@@ -11,3 +11,9 @@ Hall of fame players and all-star players dramatically escalate the publicity, t
 * [NBA Salaries](https://data.world/datadavis/nba-salaries) – Data on salaries from 1985 – 2018
 * [NBA Player Stats](https://www.kaggle.com/drgilermo/nba-players-stats) – NBA player game statistics for all players from 1950 - 2017
 * [Basketball Statistics Glossary](https://www.basketball-reference.com/about/glossary.html) – A dictionary of all statistics acronyms
+
+# Interesting Finds
+![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Awarded%20Players.png)
+![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Individual%20Stats.png)
+![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Player%20Position.png)
+![alt text](https://github.com/kwanfucius/NBA-Stats/blob/main/Images/Salary%20and%20Shot%20Type%20Percentage.png)
