@@ -5,6 +5,7 @@ Hall of fame players and all-star players dramatically escalate the publicity, t
 - R, Rstudio
 - SQL 
 - Statistics and Modeling
+- Machine Learning(Linear Regression, GLM, Decision Trees, Predictive Modeling)
 
 # Datasets And Resources
 * [General NBA Data](https://www.kaggle.com/open-source-sports/mens-professional-basketball) – Used for data on general player background information, awards given to players, and the listing of all players that made the all-star team each year
